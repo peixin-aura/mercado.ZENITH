@@ -4,7 +4,6 @@
 const PUSHER_KEY = "354fb91e735f413bf3f9"; 
 const PUSHER_CLUSTER = "sa1"; 
 const GOOGLE_API_URL = "https://script.google.com/macros/s/AKfycbz8WjwkOykYMwsgGdi54-QnBwuTyUiGAiPsZprNbetktxtd9L35B48iF3oOPjNOsM5yQQ/exec";
-
 let pusherInstance = null; let canalTroca = null; let NOME_SALA = "";
 let SESSÃO_EU = { id: "", nome: "", itensOfertados: [], dinheiroOfertado: 0 };
 let SESSÃO_PARCEIRO = { id: "", nome: "", itensOfertados: [], dinheiroOfertado: 0 };
