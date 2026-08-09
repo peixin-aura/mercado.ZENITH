@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mercado Central de Suna e Konoha 🏪</title>
+    <script src="https://js.pusher.com/7.0/pusher.min.js"></script>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="mercado-container">
+        <h1>SETOR DE NEGOCIAÇÕES 🏪</h1>
+        <div class="subtitle">Banca de Trocas e Doações Oficiais da Vila</div>
+
+        <div class="painel-login-mercado" id="tela-login-box">
+            <p class="txt-ajuda-login">Insira as credenciais para carregar as mochilas:</p>
+            <input type="text" id="id-player-login" placeholder="SEU ID DE SHINOBI" autocomplete="off">
+            <input type="text" id="id-parceiro-login" placeholder="ID DO PARCEIRO DE TROCA" autocomplete="off">
+            <button class="btn-entrar" onclick="autenticarEEntrarNoMercado()">Conectar à Sala</button>
+        </div>
+
+        <div class="area-principal-mercado" id="tela-tabuleiro-box">
+            <div class="layout-troca-grid">
+                <div class="coluna-painel">
+                    <div class="topo-painel-status">
+                        <span class="nome-player-txt" id="txt-nome-eu">Seu ID</span>
+                        <span class="valor-total-exibido" id="txt-val-eu">0 Ryos</span>
+                    </div>
+                    <div class="chat-emojis-status" id="chat-status-eu">Reação: ⏳ Aguardando...</div>
+                    <p class="lbl-secoes-internas">Sua Oferta na Mesa:</p>
+                    <div class="tabuleiro-ofertas-slots" id="mesa-ofertas-eu"></div>
+                    <p class="lbl-secoes-internas" style="color:#ffaa00;">🎒 Sua Mochila:</p>
+                    <div class="grid-mochila-inventario" id="mochila-eu"></div>
+                </div>
+
+                <div class="coluna-painel">
+                    <div class="topo-painel-status">
+                        <span class="nome-player-txt" id="txt-nome-parceiro">Parceiro</span>
+                        <span class="valor-total-exibido" id="txt-val-parceiro">0 Ryos</span>
+                    </div>
+                    <div class="chat-emojis-status" id="chat-status-parceiro">Reação: ⏳ Aguardando...</div>
+                    <p class="lbl-secoes-internas">Ofertas dele na Mesa:</p>
+                    <div class="tabuleiro-ofertas-slots" id="mesa-ofertas-parceiro"></div>
+                    <p class="lbl-secoes-internas" style="color:#666;">🎒 Mochila do Parceiro:</p>
+                    <div class="grid-mochila-inventario" id="mochila-parceiro">
+                        <div class="lbl-mochila-oculta">Mochila Sincronizada</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="painel-adicionar-dinheiro">
+                <label class="lbl-adicionar-dinheiro">Adicionar Dinheiro à Mesa (Ryos):</label>
+                <input type="number" id="input-oferta-dinheiro" value="0" min="0" step="500" class="input-dinheiro-mesa" oninput="atualizarDinheiroNaMesa()">
+            </div>
+
+            <div class="painel-controles-central">
+                <div class="botoes-reacoes-grid">
+                    <button class="btn-reacao-emoji" onclick="enviarReacao('🤝 ACEITO!')">🤝 Aceito</button>
+                    <button class="btn-reacao-emoji" onclick="enviarReacao('❌ NÃO ACEITO')">❌ Recuso</button>
+                    <button class="btn-reacao-emoji" onclick="enviarReacao('💰 DÁ MAIS!')">💰 Dá Mais</button>
+                    <button class="btn-reacao-emoji" onclick="enviarReacao('🗑️ TIRA ISSO')">🗑️ Tira isso</button>
+                    <button class="btn-reacao-emoji" onclick="enviarReacao('🎁 VOU DOAR PRA VOCÊ!')">🎁 Vou Doar</button>
+                </div>
+                <button class="btn-confirmar-master" id="btn-trava-master" onclick="iniciarContagemRegressivaFinal()">Confirmar Operação</button>
+                <div id="modo-operacao-lbl">Modo: Oculto</div>
+            </div>
+        </div>
+
+        <div class="tela-loading-timer" id="tela-carregamento-loading">
+            <div class="spinner-roda"></div>
+            <h2 id="lbl-loading-titulo">SINCRONIZANDO COM A PLANILHA</h2>
+            <p id="lbl-loading-desc">Aguarde o processamento atômico das células...</p>
+            <div id="cronometro-regressivo">5</div>
+        </div>
+    </div>
+    <script src="mercado.js"></script>
+</body>
+</html>
