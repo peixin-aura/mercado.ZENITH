@@ -15,7 +15,6 @@ const BANCO_ITENS_MERCADO = [
     { id: "kunai_de_espaco", nome: "Kunai Deus Relampago", raridade: "raro", valor: 5000, imagem: "🗡️" },
     { id: "pergaminho_vazio", nome: "Pergaminho Comum", raridade: "comum", valor: 1000, imagem: "📜" }
 ];
-
 async function autenticarEEntrarNoMercado() {
     const meuId = document.getElementById('id-player-login').value.trim().toLowerCase();
     const parceiroId = document.getElementById('id-parceiro-login').value.trim().toLowerCase();
@@ -23,48 +22,78 @@ async function autenticarEEntrarNoMercado() {
 
     SESSÃO_EU.id = meuId; SESSÃO_PARCEIRO.id = parceiroId;
     const IDsOrdenados = [meuId, parceiroId].sort();
-    
-    // CANAL PÚBLICO SEGURO ASSINADO PELA PLANILHA
     NOME_SALA = `sala_publica_${IDsOrdenados}_${IDsOrdenados}`;
 
+    // ⏳ PULO DO GATO: Ativa a tela de loading imediatamente ao clicar em entrar
+    const loadingTela = document.getElementById('tela-carregamento-loading');
+    const crono = document.getElementById('cronometro-regressivo');
+    const lblTitulo = document.getElementById('lbl-loading-titulo');
+    const lblDesc = document.getElementById('lbl-loading-desc');
+    
+    // Configura o visual do loading temporário de entrada
+    crono.style.display = 'none'; // Oculta o número 5 por enquanto
+    lblTitulo.innerText = "CONECTANDO À SALA MULTIPLAYER";
+    lblDesc.innerText = "Estabelecendo canal síncrono seguro com a nuvem do mercado... Por favor, aguarde.";
+    loadingTela.style.display = 'flex';
+
+    // Inicializa a instância do Pusher em segundo plano
     pusherInstance = new Pusher(PUSHER_KEY, { cluster: PUSHER_CLUSTER, forceTLS: true });
-    canalTroca = pusherInstance.subscribe(NOME_SALA);
 
-    canalTroca.bind('atualizar_mesa', function(data) {
-        if (data.remetenteId === SESSÃO_PARCEIRO.id) {
-            SESSÃO_PARCEIRO.itensOfertados = data.itens || [];
-            SESSÃO_PARCEIRO.dinheiroOfertado = Number(data.dinheiro) || 0; // Sincronia corrigida de dinero para dinheiro
-            atualizarVisualMesa();
-        }
-    });
+    // ⏳ TIMER DE RESPIRAÇÃO: Dá 1.5 segundos para estabilizar a rede enquanto o player vê o loading
+    setTimeout(async () => {
+        canalTroca = pusherInstance.subscribe(NOME_SALA);
 
-    canalTroca.bind('enviar_reacao', function(data) {
-        if (data.remetenteId === SESSÃO_PARCEIRO.id) {
-            document.getElementById('chat-status-parceiro').innerText = `Reação: ${data.texto}`;
-        }
-    });
-
-    document.getElementById('tela-login-box').style.display = 'none';
-    document.getElementById('tela-tabuleiro-box').style.display = 'block';
-    document.getElementById('txt-nome-eu').innerText = meuId.toUpperCase();
-    document.getElementById('txt-nome-parceiro').innerText = parceiroId.toUpperCase();
-
-    try {
-        const res = await fetch(GOOGLE_API_URL, {
-            method: 'POST', headers: { 'Content-Type': 'text/plain' },
-            body: JSON.stringify({ acao: 'buscarRanking', playerId: meuId })
+        // Ativa os escutadores do tempo real de cards e emojis
+        canalTroca.bind('atualizar_mesa', function(data) {
+            if (data.remetenteId === SESSÃO_PARCEIRO.id) {
+                SESSÃO_PARCEIRO.itensOfertados = data.itens || [];
+                SESSÃO_PARCEIRO.dinheiroOfertado = Number(data.dinheiro) || 0;
+                atualizarVisualMesa();
+            }
         });
-        const data = await res.json();
-        
-        if (data.success && data.inventariosGerais) {
-            const meuInvReal = data.inventariosGerais.find(i => String(i.id).trim().toLowerCase() === meuId.toLowerCase());
-            if (meuInvReal && meuInvReal.itens.length > 0) {
-                renderizarMinhaMochila(meuInvReal.itens);
+
+        canalTroca.bind('enviar_reacao', function(data) {
+            if (data.remetenteId === SESSÃO_PARCEIRO.id) {
+                document.getElementById('chat-status-parceiro').innerText = `Reação: ${data.texto}`;
+            }
+        });
+
+        // Tira o painel de login e joga o tabuleiro na tela
+        document.getElementById('tela-login-box').style.display = 'none';
+        document.getElementById('tela-tabuleiro-box').style.display = 'block';
+        document.getElementById('txt-nome-eu').innerText = meuId.toUpperCase();
+        document.getElementById('txt-nome-parceiro').innerText = parceiroId.toUpperCase();
+
+        // Carrega a mochila real puxando o pacote único do Sheets
+        try {
+            const res = await fetch(GOOGLE_API_URL, {
+                method: 'POST', headers: { 'Content-Type': 'text/plain' },
+                body: JSON.stringify({ acao: 'buscarRanking', playerId: meuId })
+            });
+            const dataResponse = await res.json();
+            
+            if (dataResponse.success && dataResponse.inventariosGerais) {
+                const meuInvReal = dataResponse.inventariosGerais.find(i => String(i.id).trim().toLowerCase() === meuId.toLowerCase());
+                if (meuInvReal && meuInvReal.itens.length > 0) {
+                    renderizarMinhaMochila(meuInvReal.itens);
+                } else { renderizarMinhaMochila([]); }
             } else { renderizarMinhaMochila([]); }
-        } else { renderizarMinhaMochila([]); }
-    } catch(e) { renderizarMinhaMochila([]); }
-    atualizarVisualMesa();
+        } catch(e) { renderizarMinhaMochila([]); }
+        
+        atualizarVisualMesa();
+
+        // Feito tudo com segurança, fecha o loading e abre o jogo!
+        loadingTela.style.display = 'none';
+        
+        // Restaura as configurações originais do loading para quando clicarem em Confirmar no final
+        crono.style.display = 'block';
+        lblTitulo.innerText = "SINCRONIZANDO COM A PLANILHA";
+        lblDesc.innerText = "Aguarde o processamento atômico das células...";
+        
+        console.log("📡 Sala síncrona iniciada com sucesso!");
+    }, 1500); // 1.5 segundos de puro charme e segurança de rede
 }
+
 
 async function notificarMudanca() {
     try {
