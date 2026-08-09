@@ -2,13 +2,13 @@
 // 🔥 ESTRATÉGIA DEFINITIVA: SINCRO EM TEMPO REAL VIA FIREBASE (SHEETS INTEGRADO)
 // ============================================================================
 const firebaseConfig = {
-    apiKey: "SUA_API_KEY_AQUI",
-    authDomain: "SEU_AUTH_DOMAIN_AQUI",
-    databaseURL: "SUA_DATABASE_URL_AQUI", // <-- A URL do seu Realtime Database aqui
-    projectId: "SEU_PROJECT_ID_AQUI",
-    storageBucket: "SEU_STORAGE_BUCKET_AQUI",
-    messagingSenderId: "SEU_MESSAGING_ID_AQUI",
-    appId: "SEU_APP_ID_AQUI"
+  apiKey: "AIzaSyD2rrqd-Ybat2NlGIIMWhVvy0ZrmqEEvJk",
+  authDomain: "mercadorpg.firebaseapp.com",
+  databaseURL: "https://mercadorpg-default-rtdb.firebaseio.com",
+  projectId: "mercadorpg",
+  storageBucket: "mercadorpg.firebasestorage.app",
+  messagingSenderId: "1092846255279",
+  appId: "1:1092846255279:web:458f6750e5928eba9ca85a"
 };
 
 // Inicializa a Firebase de forma segura
@@ -17,7 +17,7 @@ if (!firebase.apps.length) {
 }
 const bancoFirebase = firebase.database();
 
-const GOOGLE_API_URL = "SUA_URL_DO_GOOGLE_SCRIPT_AQUI";
+const GOOGLE_API_URL = "https://script.google.com/macros/s/AKfycbz8WjwkOykYMwsgGdi54-QnBwuTyUiGAiPsZprNbetktxtd9L35B48iF3oOPjNOsM5yQQ/exec";
 let referencaSalaRealtime = null; let NOME_SALA = "";
 let SESSÃO_EU = { id: "", nome: "", itensOfertados: [], dinheiroOfertado: 0 };
 let SESSÃO_PARCEIRO = { id: "", nome: "", itensOfertados: [], dinheiroOfertado: 0 };
