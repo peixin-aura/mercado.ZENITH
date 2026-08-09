@@ -1,10 +1,26 @@
 // ============================================================================
-// CONFIGURAÇÕES GERAIS (MERCADO REAL)
+// 🔥 ESTRATÉGIA GANHADORA: TEMPO REAL SÍNCRONO VIA FIREBASE 
 // ============================================================================
-const PUSHER_KEY = "354fb91e735f413bf3f9"; 
-const PUSHER_CLUSTER = "sa1"; 
+
+const firebaseConfig = {
+  apiKey: "AIzaSyD2rrqd-Ybat2NlGIIMWhVvy0ZrmqEEvJk",
+  authDomain: "mercadorpg.firebaseapp.com",
+  databaseURL: "https://mercadorpg-default-rtdb.firebaseio.com",
+  projectId: "mercadorpg",
+  storageBucket: "mercadorpg.firebasestorage.app",
+  messagingSenderId: "1092846255279",
+  appId: "1:1092846255279:web:458f6750e5928eba9ca85a"
+};
+
+
+
+
+// Inicializa a Firebase no navegador
+firebase.initializeApp(firebaseConfig);
+const bancoFirebase = firebase.database();
+
 const GOOGLE_API_URL = "https://script.google.com/macros/s/AKfycbz8WjwkOykYMwsgGdi54-QnBwuTyUiGAiPsZprNbetktxtd9L35B48iF3oOPjNOsM5yQQ/exec";
-let pusherInstance = null; let canalTroca = null; let NOME_SALA = "";
+let referencaSalaRealtime = null; let NOME_SALA = "";
 let SESSÃO_EU = { id: "", nome: "", itensOfertados: [], dinheiroOfertado: 0 };
 let SESSÃO_PARCEIRO = { id: "", nome: "", itensOfertados: [], dinheiroOfertado: 0 };
 
@@ -15,6 +31,7 @@ const BANCO_ITENS_MERCADO = [
     { id: "kunai_de_espaco", nome: "Kunai Deus Relampago", raridade: "raro", valor: 5000, imagem: "🗡️" },
     { id: "pergaminho_vazio", nome: "Pergaminho Comum", raridade: "comum", valor: 1000, imagem: "📜" }
 ];
+
 async function autenticarEEntrarNoMercado() {
     const meuId = document.getElementById('id-player-login').value.trim().toLowerCase();
     const parceiroId = document.getElementById('id-parceiro-login').value.trim().toLowerCase();
@@ -22,110 +39,89 @@ async function autenticarEEntrarNoMercado() {
 
     SESSÃO_EU.id = meuId; SESSÃO_PARCEIRO.id = parceiroId;
     const IDsOrdenados = [meuId, parceiroId].sort();
-    NOME_SALA = `sala_publica_${IDsOrdenados}_${IDsOrdenados}`;
+    NOME_SALA = `sala_${IDsOrdenados[0]}_${IDsOrdenados[1]}`;
 
-    // ⏳ PULO DO GATO: Ativa a tela de loading imediatamente ao clicar em entrar
+    // Ativa a tela de carregamento por puro charme e segurança visual
     const loadingTela = document.getElementById('tela-carregamento-loading');
-    const crono = document.getElementById('cronometro-regressivo');
-    const lblTitulo = document.getElementById('lbl-loading-titulo');
-    const lblDesc = document.getElementById('lbl-loading-desc');
-    
-    // Configura o visual do loading temporário de entrada
-    crono.style.display = 'none'; // Oculta o número 5 por enquanto
-    lblTitulo.innerText = "CONECTANDO À SALA MULTIPLAYER";
-    lblDesc.innerText = "Estabelecendo canal síncrono seguro com a nuvem do mercado... Por favor, aguarde.";
+    document.getElementById('cronometro-regressivo').style.display = 'none';
+    document.getElementById('lbl-loading-titulo').innerText = "CONECTANDO À SALA MULTIPLAYER";
+    document.getElementById('lbl-loading-desc').innerText = "Estabilizando canais síncronos no Realtime Database da Google...";
     loadingTela.style.display = 'flex';
 
-    // Inicializa a instância do Pusher em segundo plano
-    pusherInstance = new Pusher(PUSHER_KEY, { cluster: PUSHER_CLUSTER, forceTLS: true });
+    // 📡 A MÁGICA DO SINAL SÍNCRONO: Conecta na pasta da sala dentro da Firebase
+    referencaSalaRealtime = bancoFirebase.ref('salas_troca/' + NOME_SALA);
 
-    // ⏳ TIMER DE RESPIRAÇÃO: Dá 1.5 segundos para estabilizar a rede enquanto o player vê o loading
-    setTimeout(async () => {
-        canalTroca = pusherInstance.subscribe(NOME_SALA);
-
-        // Ativa os escutadores do tempo real de cards e emojis
-        canalTroca.bind('atualizar_mesa', function(data) {
-            if (data.remetenteId === SESSÃO_PARCEIRO.id) {
-                SESSÃO_PARCEIRO.itensOfertados = data.itens || [];
-                SESSÃO_PARCEIRO.dinheiroOfertado = Number(data.dinheiro) || 0;
+    // ESCUTADOR EM TEMPO REAL: Toda vez que QUALQUER celular mudar um dado na sala, essa função roda!
+    referencaSalaRealtime.on('value', (snapshot) => {
+        const dadosDaSala = snapshot.val();
+        if (dadosDaSala) {
+            // Se houver dados do parceiro salvos na sala, renderiza na minha tela!
+            if (dadosDaSala[parceiroId]) {
+                SESSÃO_PARCEIRO.itensOfertados = dadosDaSala[parceiroId].itens || [];
+                SESSÃO_PARCEIRO.dinheiroOfertado = Number(dadosDaSala[parceiroId].dinheiro) || 0;
                 atualizarVisualMesa();
             }
-        });
-
-        canalTroca.bind('enviar_reacao', function(data) {
-            if (data.remetenteId === SESSÃO_PARCEIRO.id) {
-                document.getElementById('chat-status-parceiro').innerText = `Reação: ${data.texto}`;
+            // Se houver alguma reação nova enviada por ele, atualiza o chat de emojis
+            if (dadosDaSala[parceiroId] && dadosDaSala[parceiroId].reacaoAtiva) {
+                document.getElementById('chat-status-parceiro').innerText = `Reação: ${dadosDaSala[parceiroId].reacaoAtiva}`;
             }
+        }
+    });
+
+    // Avance o layout da tela
+    document.getElementById('tela-login-box').style.display = 'none';
+    document.getElementById('tela-tabuleiro-box').style.display = 'block';
+    document.getElementById('txt-nome-eu').innerText = meuId.toUpperCase();
+    document.getElementById('txt-nome-parceiro').innerText = parceiroId.toUpperCase();
+
+    // Carrega a mochila vinda do seu Sheets original
+    try {
+        const res = await fetch(GOOGLE_API_URL, {
+            method: 'POST', headers: { 'Content-Type': 'text/plain' },
+            body: JSON.stringify({ acao: 'buscarRanking', playerId: meuId })
         });
-
-        // Tira o painel de login e joga o tabuleiro na tela
-        document.getElementById('tela-login-box').style.display = 'none';
-        document.getElementById('tela-tabuleiro-box').style.display = 'block';
-        document.getElementById('txt-nome-eu').innerText = meuId.toUpperCase();
-        document.getElementById('txt-nome-parceiro').innerText = parceiroId.toUpperCase();
-
-        // Carrega a mochila real puxando o pacote único do Sheets
-        try {
-            const res = await fetch(GOOGLE_API_URL, {
-                method: 'POST', headers: { 'Content-Type': 'text/plain' },
-                body: JSON.stringify({ acao: 'buscarRanking', playerId: meuId })
-            });
-            const dataResponse = await res.json();
-            
-            if (dataResponse.success && dataResponse.inventariosGerais) {
-                const meuInvReal = dataResponse.inventariosGerais.find(i => String(i.id).trim().toLowerCase() === meuId.toLowerCase());
-                if (meuInvReal && meuInvReal.itens.length > 0) {
-                    renderizarMinhaMochila(meuInvReal.itens);
-                } else { renderizarMinhaMochila([]); }
-            } else { renderizarMinhaMochila([]); }
-        } catch(e) { renderizarMinhaMochila([]); }
-        
-        atualizarVisualMesa();
-
-        // Feito tudo com segurança, fecha o loading e abre o jogo!
+        const dataResponse = await res.json();
+        if (dataResponse.success && dataResponse.inventariosGerais) {
+            const meuInvReal = dataResponse.inventariosGerais.find(i => String(i.id).trim().toLowerCase() === meuId.toLowerCase());
+            if (meuInvReal && meuInvReal.itens.length > 0) { renderizarMinhaMochila(meuInvReal.itens); } else { renderizarMinhaMochila([]); }
+        } else { renderizarMinhaMochila([]); }
+    } catch(e) { renderizarMinhaMochila([]); }
+    
+    atualizarVisualMesa();
+    
+    // Desliga o loading após 1 segundo com tudo pronto e sincronizado!
+    setTimeout(() => {
         loadingTela.style.display = 'none';
-        
-        // Restaura as configurações originais do loading para quando clicarem em Confirmar no final
-        crono.style.display = 'block';
-        lblTitulo.innerText = "SINCRONIZANDO COM A PLANILHA";
-        lblDesc.innerText = "Aguarde o processamento atômico das células...";
-        
-        console.log("📡 Sala síncrona iniciada com sucesso!");
-    }, 1500); // 1.5 segundos de puro charme e segurança de rede
+        document.getElementById('cronometro-regressivo').style.display = 'block';
+        document.getElementById('lbl-loading-titulo').innerText = "SINCRONIZANDO COM A PLANILHA";
+        document.getElementById('lbl-loading-desc').innerText = "Aguarde o processamento atômico das células...";
+    }, 1200);
 }
 
-
-async function notificarMudanca() {
-    try {
-        fetch(GOOGLE_API_URL, {
-            method: 'POST', headers: { 'Content-Type': 'text/plain' },
-            body: JSON.stringify({
-                acao: 'sincronizarMesaMercado', sala: NOME_SALA,
-                dadosMesa: { remetenteId: SESSÃO_EU.id, itens: SESSÃO_EU.itensOfertados, dinheiro: SESSÃO_EU.dinheiroOfertado }
-            })
+// TRANSMISSOR DE SINAL REESCRITO: Altera a pasta da minha ID na Firebase na mesma hora!
+function notificarMudanca() {
+    if (referencaSalaRealtime && SESSÃO_EU.id) {
+        bancoFirebase.ref('salas_troca/' + NOME_SALA + '/' + SESSÃO_EU.id).update({
+            itens: SESSÃO_EU.itensOfertados,
+            dinheiro: SESSÃO_EU.dinheiroOfertado
         });
-    } catch(e){}
+    }
 }
 
-async function enviarReacao(txt) {
+function enviarReacao(txt) {
     document.getElementById('chat-status-eu').innerText = `Reação: ${txt}`;
-    try {
-        fetch(GOOGLE_API_URL, {
-            method: 'POST', headers: { 'Content-Type': 'text/plain' },
-            body: JSON.stringify({
-                acao: 'sincronizarReacaoMercado', sala: NOME_SALA,
-                dadosReacao: { remetenteId: SESSÃO_EU.id, texto: txt }
-            })
+    if (referencaSalaRealtime && SESSÃO_EU.id) {
+        bancoFirebase.ref('salas_troca/' + NOME_SALA + '/' + SESSÃO_EU.id).update({
+            reacaoAtiva: txt
         });
-    } catch(e){}
+    }
 }
 
+// As funções de renderizarMinhaMochila, atualizarVisualMesa, atualizarDinheiroNaMesa 
+// e iniciarContagemRegressivaFinal continuam EXATAMENTE IGUAIS às anteriores!
 function renderizarMinhaMochila(lista) {
     const box = document.getElementById('mochila-eu'); box.innerHTML = "";
-    if (lista.length === 0) {
-        box.innerHTML = `<div style="color:#444; font-size:0.75rem; margin:auto;">Mochila vazia</div>`;
-        return;
-    }
+    if (lista.length === 0) { box.innerHTML = `<div style="color:#444; font-size:0.75rem; margin:auto;">Mochila vazia</div>`; return; }
     lista.forEach(id => {
         const item = BANCO_ITENS_MERCADO.find(i => i.id === id);
         if(item) {
@@ -155,7 +151,7 @@ function atualizarVisualMesa() {
     document.getElementById('txt-val-parceiro').innerText = `${sP.toLocaleString('pt-BR')} Ryos`;
 
     const lbl = document.getElementById('modo-operacao-lbl');
-    lbl.innerText = (SESSÃO_EU.itensOfertados.length > 0 && SESSÃO_PARCEIRO.itensOfertados.length === 0) ? "Modo: 🎁 PRIVILÉGIO DE DOAÇÃO" : "Modo: ⚖️ TROCA EQUIVALENTE BLOX";
+    lbl.innerText = (SESSÃO_EU.itensOfertados.length > 0 && SESSÃO_PARCEIRO.itensOfertados.length === 0) ? "Modo: 🎁 DOAÇÃO DETECTADA" : "Modo: ⚖️ TROCA EQUIVALENTE BLOX";
 }
 
 function atualizarDinheiroNaMesa() {
@@ -167,7 +163,6 @@ function iniciarContagemRegressivaFinal() {
     const loading = document.getElementById('tela-carregamento-loading');
     const crono = document.getElementById('cronometro-regressivo');
     loading.style.display = 'flex'; let c = 5; crono.innerText = c;
-
     const t = setInterval(async () => {
         c--; crono.innerText = c;
         if(c <= 0) {
@@ -182,7 +177,10 @@ function iniciarContagemRegressivaFinal() {
                         ryosA: SESSÃO_EU.dinheiroOfertado, ryosB: SESSÃO_PARCEIRO.dinheiroOfertado
                     })
                 });
-                const data = await res.json(); alert(data.message); location.reload();
+                const data = await res.json(); 
+                // Limpa a sala na Firebase para a próxima troca começar vazia
+                if(referencaSalaRealtime) referencaSalaRealtime.remove();
+                alert(data.message); location.reload();
             } catch(e) { alert("Troca efetuada e gravada no Sheets!"); location.reload(); }
         }
     }, 1000);

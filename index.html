@@ -4,8 +4,10 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Mercado Central de Suna e Konoha 🏪</title>
-    <script src="https://js.pusher.com/7.0/pusher.min.js"></script>
-      <link rel="stylesheet" href="styles.css">
+    <!-- CARREGAMENTO COMPATÍVEL DA FIREBASE VIA CDN -->
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
+          <link rel="stylesheet" href="styles.css">
 </head>
 <body>
     <div class="mercado-container">
@@ -19,6 +21,7 @@
             <input type="text" id="id-parceiro-login" placeholder="ID DO PARCEIRO DE TROCA" autocomplete="off">
             <button class="btn-entrar" onclick="autenticarEEntrarNoMercado()">Conectar à Sala</button>
         </div>
+        
 
         <!-- TELA 2: TABULEIRO MULTIPLAYER -->
         <div class="area-principal-mercado" id="tela-tabuleiro-box">
