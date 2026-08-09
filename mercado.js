@@ -4,7 +4,7 @@
 const firebaseConfig = {
   apiKey: "AIzaSyD2rrqd-Ybat2NlGIIMWhVvy0ZrmqEEvJk",
   authDomain: "mercadorpg.firebaseapp.com",
-  databaseURL: "https://mercadorpg-default-rtdb.firebaseio.com",
+  databaseURL: "https://mercadorpg-default-rtdb.firebaseio.com/",
   projectId: "mercadorpg",
   storageBucket: "mercadorpg.firebasestorage.app",
   messagingSenderId: "1092846255279",
