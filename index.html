@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Mercado Central de Suna e Konoha 🏪</title>
-    <script src="https://js.pusher.com/7.0/pusher.min.js"></script>
+    <script src="https://pusher.com"></script>
     <link rel="stylesheet" href="styles.css">
 </head>
 <body>
@@ -12,6 +12,7 @@
         <h1>SETOR DE NEGOCIAÇÕES 🏪</h1>
         <div class="subtitle">Banca de Trocas e Doações Oficiais da Vila</div>
 
+        <!-- TELA 1: LOGIN -->
         <div class="painel-login-mercado" id="tela-login-box">
             <p class="txt-ajuda-login">Insira as credenciais para carregar as mochilas:</p>
             <input type="text" id="id-player-login" placeholder="SEU ID DE SHINOBI" autocomplete="off">
@@ -19,6 +20,7 @@
             <button class="btn-entrar" onclick="autenticarEEntrarNoMercado()">Conectar à Sala</button>
         </div>
 
+        <!-- TELA 2: TABULEIRO MULTIPLAYER -->
         <div class="area-principal-mercado" id="tela-tabuleiro-box">
             <div class="layout-troca-grid">
                 <div class="coluna-painel">
@@ -66,10 +68,11 @@
             </div>
         </div>
 
+        <!-- TIMEOUT DE CARREGAMENTO -->
         <div class="tela-loading-timer" id="tela-carregamento-loading">
             <div class="spinner-roda"></div>
             <h2 id="lbl-loading-titulo">SINCRONIZANDO COM A PLANILHA</h2>
-            <p id="lbl-loading-desc">Aguarde o processamento atômico das células...</p>
+            <p id="lbl-loading-desc">Cruzando dados e reestruturando as células de inventários...</p>
             <div id="cronometro-regressivo">5</div>
         </div>
     </div>

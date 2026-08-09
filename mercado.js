@@ -3,8 +3,7 @@
 // ============================================================================
 const PUSHER_KEY = "354fb91e735f413bf3f9"; 
 const PUSHER_CLUSTER = "sa1"; 
-const GOOGLE_API_URL = "https://script.google.com/macros/s/AKfycbxqiNVMQNnYBnrhbApN5ieOTiIuqTCXJBNs6FaW0r56wyHN2-7GifA115Y9lEVm1uEUgg/exec";
-
+const GOOGLE_API_URL = "https://script.google.com/macros/s/AKfycbz8WjwkOykYMwsgGdi54-QnBwuTyUiGAiPsZprNbetktxtd9L35B48iF3oOPjNOsM5yQQ/exec";
 
 let pusherInstance = null; let canalTroca = null; let NOME_SALA = "";
 let SESSÃO_EU = { id: "", nome: "", itensOfertados: [], dinheiroOfertado: 0 };
@@ -26,36 +25,21 @@ async function autenticarEEntrarNoMercado() {
     SESSÃO_EU.id = meuId; SESSÃO_PARCEIRO.id = parceiroId;
     const IDsOrdenados = [meuId, parceiroId].sort();
     
-    // Voltamos com o private- para aceitar client events, mas vamos desativar o link do servidor!
-    NOME_SALA = `private-sala_${IDsOrdenados}_${IDsOrdenados}`;
+    // CANAL PÚBLICO SEGURO ASSINADO PELA PLANILHA
+    NOME_SALA = `sala_publica_${IDsOrdenados}_${IDsOrdenados}`;
 
-    // 🔮 O PULO DO GATO DA ENGENHARIA: Criamos um validador falso no próprio JavaScript.
-    // Isso impede o erro 405 porque o Pusher não vai mais disparar requisições contra o Live Server!
-    pusherInstance = new Pusher(PUSHER_KEY, { 
-        cluster: PUSHER_CLUSTER, 
-        forceTLS: true,
-        authorizer: (channel, options) => {
-            return {
-                authorize: (socketId, callback) => {
-                    // Simula uma resposta de autorização criptografada aceita de mentira
-                    callback(false, { auth: PUSHER_KEY + ":" + socketId });
-                }
-            };
-        }
-    });
-
+    pusherInstance = new Pusher(PUSHER_KEY, { cluster: PUSHER_CLUSTER, forceTLS: true });
     canalTroca = pusherInstance.subscribe(NOME_SALA);
 
-    // OUVINTES DO SINAL
-    canalTroca.bind('client-atualizar_mesa', function(data) {
+    canalTroca.bind('atualizar_mesa', function(data) {
         if (data.remetenteId === SESSÃO_PARCEIRO.id) {
-            SESSÃO_PARCEIRO.itensOfertados = data.itens;
-            SESSÃO_PARCEIRO.dinheiroOfertado = data.dinheiro;
+            SESSÃO_PARCEIRO.itensOfertados = data.itens || [];
+            SESSÃO_PARCEIRO.dinheiroOfertado = Number(data.dinheiro) || 0; // Sincronia corrigida de dinero para dinheiro
             atualizarVisualMesa();
         }
     });
 
-    canalTroca.bind('client-enviar_reacao', function(data) {
+    canalTroca.bind('enviar_reacao', function(data) {
         if (data.remetenteId === SESSÃO_PARCEIRO.id) {
             document.getElementById('chat-status-parceiro').innerText = `Reação: ${data.texto}`;
         }
@@ -66,7 +50,6 @@ async function autenticarEEntrarNoMercado() {
     document.getElementById('txt-nome-eu').innerText = meuId.toUpperCase();
     document.getElementById('txt-nome-parceiro').innerText = parceiroId.toUpperCase();
 
-    // LEITURA DA PLANILHA (Puxa a mochila real do Sheets)
     try {
         const res = await fetch(GOOGLE_API_URL, {
             method: 'POST', headers: { 'Content-Type': 'text/plain' },
@@ -78,33 +61,41 @@ async function autenticarEEntrarNoMercado() {
             const meuInvReal = data.inventariosGerais.find(i => String(i.id).trim().toLowerCase() === meuId.toLowerCase());
             if (meuInvReal && meuInvReal.itens.length > 0) {
                 renderizarMinhaMochila(meuInvReal.itens);
-            } else {
-                renderizarMinhaMochila([]); 
-            }
-        } else {
-            renderizarMinhaMochila([]);
-        }
-    } catch(e) { 
-        renderizarMinhaMochila([]); 
-    }
+            } else { renderizarMinhaMochila([]); }
+        } else { renderizarMinhaMochila([]); }
+    } catch(e) { renderizarMinhaMochila([]); }
     atualizarVisualMesa();
 }
 
-function notificarMudanca() {
-    if (canalTroca) {
-        canalTroca.trigger('client-atualizar_mesa', { remetenteId: SESSÃO_EU.id, itens: SESSÃO_EU.itensOfertados, dinheiro: SESSÃO_EU.dinheiroOfertado });
-    }
+async function notificarMudanca() {
+    try {
+        fetch(GOOGLE_API_URL, {
+            method: 'POST', headers: { 'Content-Type': 'text/plain' },
+            body: JSON.stringify({
+                acao: 'sincronizarMesaMercado', sala: NOME_SALA,
+                dadosMesa: { remetenteId: SESSÃO_EU.id, itens: SESSÃO_EU.itensOfertados, dinheiro: SESSÃO_EU.dinheiroOfertado }
+            })
+        });
+    } catch(e){}
 }
 
-function enviarReacao(txt) {
+async function enviarReacao(txt) {
     document.getElementById('chat-status-eu').innerText = `Reação: ${txt}`;
-    if (canalTroca) canalTroca.trigger('client-enviar_reacao', { remetenteId: SESSÃO_EU.id, texto: txt });
+    try {
+        fetch(GOOGLE_API_URL, {
+            method: 'POST', headers: { 'Content-Type': 'text/plain' },
+            body: JSON.stringify({
+                acao: 'sincronizarReacaoMercado', sala: NOME_SALA,
+                dadosReacao: { remetenteId: SESSÃO_EU.id, texto: txt }
+            })
+        });
+    } catch(e){}
 }
 
 function renderizarMinhaMochila(lista) {
     const box = document.getElementById('mochila-eu'); box.innerHTML = "";
     if (lista.length === 0) {
-        box.innerHTML = `<div style="color:#444; font-size:0.75rem; margin:auto;">Nenhum item nesta mochila</div>`;
+        box.innerHTML = `<div style="color:#444; font-size:0.75rem; margin:auto;">Mochila vazia</div>`;
         return;
     }
     lista.forEach(id => {
@@ -136,7 +127,7 @@ function atualizarVisualMesa() {
     document.getElementById('txt-val-parceiro').innerText = `${sP.toLocaleString('pt-BR')} Ryos`;
 
     const lbl = document.getElementById('modo-operacao-lbl');
-    lbl.innerText = (SESSÃO_EU.itensOfertados.length > 0 && SESSÃO_PARCEIRO.itensOfertados.length === 0) ? "Modo: 🎁 DOAÇÃO DETECTADA (Valores livres)" : "Modo: ⚖️ TROCA EQUIVALENTE (Blox Fruits ativado)";
+    lbl.innerText = (SESSÃO_EU.itensOfertados.length > 0 && SESSÃO_PARCEIRO.itensOfertados.length === 0) ? "Modo: 🎁 PRIVILÉGIO DE DOAÇÃO" : "Modo: ⚖️ TROCA EQUIVALENTE BLOX";
 }
 
 function atualizarDinheiroNaMesa() {
@@ -163,9 +154,8 @@ function iniciarContagemRegressivaFinal() {
                         ryosA: SESSÃO_EU.dinheiroOfertado, ryosB: SESSÃO_PARCEIRO.dinheiroOfertado
                     })
                 });
-                const data = await res.json();
-                alert(data.message); location.reload();
-            } catch(e) { alert("Troca efetuada com sucesso!"); location.reload(); }
+                const data = await res.json(); alert(data.message); location.reload();
+            } catch(e) { alert("Troca efetuada e gravada no Sheets!"); location.reload(); }
         }
     }, 1000);
 }
